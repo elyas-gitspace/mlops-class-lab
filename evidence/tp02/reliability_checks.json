@@ -1,0 +1,149 @@
+{
+  "model": "random_forest",
+  "artifact_sha256": "289cd06d2d6a814941a3a5d36b263b781c8d13c8a3dd03fb9dc38e2cf35113b1",
+  "all_passed": true,
+  "checks": [
+    {
+      "check": "customer IDs do not overlap across train/valid/test",
+      "passed": true,
+      "sizes": {
+        "train": 4225,
+        "valid": 1409,
+        "test": 1409
+      },
+      "overlaps": {
+        "train&valid": 0,
+        "train&test": 0,
+        "valid&test": 0
+      },
+      "total_customers": 7043
+    },
+    {
+      "check": "imputer medians equal training-only medians",
+      "passed": true,
+      "features": [
+        "tenure",
+        "MonthlyCharges",
+        "TotalCharges"
+      ],
+      "learned": [
+        29.0,
+        70.55,
+        1373.625
+      ],
+      "train_only": [
+        29.0,
+        70.55,
+        1373.625
+      ],
+      "full_dataset": [
+        29.0,
+        70.35,
+        1397.475
+      ],
+      "differs_from_full_dataset": [
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "check": "scaler means equal training-only means (after median imputation)",
+      "passed": true,
+      "learned": [
+        32.44284023668639,
+        64.89450887573965,
+        2297.7652366863904
+      ],
+      "train_only": [
+        32.44284023668639,
+        64.89450887573965,
+        2297.7652366863904
+      ],
+      "full_dataset": [
+        32.37114865824223,
+        64.76169246059918,
+        2283.3004408418656
+      ]
+    },
+    {
+      "check": "prediction does not change fitted state",
+      "passed": true,
+      "statistics_before": [
+        29.0,
+        70.55,
+        1373.625
+      ],
+      "statistics_after": [
+        29.0,
+        70.55,
+        1373.625
+      ],
+      "pickled_pipeline_identical": true
+    },
+    {
+      "check": "missing TotalCharges (None) is imputed with the training median",
+      "passed": true,
+      "score_with_missing": 0.09274679354848853,
+      "score_with_train_median": 0.09274679354848853
+    },
+    {
+      "check": "missing TotalCharges (' ') is imputed with the training median",
+      "passed": true,
+      "score_with_missing": 0.09274679354848853,
+      "score_with_train_median": 0.09274679354848853
+    },
+    {
+      "check": "missing TotalCharges (nan) is imputed with the training median",
+      "passed": true,
+      "score_with_missing": 0.09274679354848853,
+      "score_with_train_median": 0.09274679354848853
+    },
+    {
+      "check": "missing Contract is imputed with the most frequent training category",
+      "passed": true,
+      "most_frequent_training_category": "Month-to-month"
+    },
+    {
+      "check": "unseen category 'Three year' is encoded as all zeros (handle_unknown='ignore')",
+      "passed": true,
+      "contract_columns": [
+        "cat__Contract_Month-to-month",
+        "cat__Contract_One year",
+        "cat__Contract_Two year"
+      ],
+      "encoded_contract_values": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "score": 0.08564478841695168,
+      "warnings": [],
+      "note": "Handled without error, but the score is not reliable for a category never seen in training."
+    },
+    {
+      "check": "missing required column 'Contract' raises an error (parser and pipeline)",
+      "passed": true,
+      "parse_features": {
+        "raised": true,
+        "error_type": "ValueError",
+        "message": "Missing required feature columns: ['Contract']"
+      },
+      "pipeline_predict": {
+        "raised": true,
+        "error_type": "ValueError",
+        "message": "columns are missing: {'Contract'}"
+      }
+    },
+    {
+      "check": "malformed numeric text 'abc' raises instead of becoming missing",
+      "passed": true,
+      "parse_features": {
+        "raised": true,
+        "error_type": "ValueError",
+        "message": "Column 'TotalCharges' contains non-numeric values: ['abc']"
+      }
+    }
+  ],
+  "reload_check": "see reload_check.json (scripts/check_reload.py, separate process)"
+}

@@ -58,15 +58,69 @@ This is a **single customer snapshot**: one row per customer, at an unspecified 
 | Path | Purpose |
 |---|---|
 | `src/churnlab/` | Importable project code (data, training, serving) |
-| `scripts/` | Executable workflow commands (download, inspect, record environment) |
+| `scripts/` | Executable workflow commands (download, inspect, record environment, train, predict, checks) |
+| `configs/` | Training configuration (split seed, candidates, selection rule) |
+| `examples/` | Small fictional inference input without labels |
 | `tests/` | Small behavior checks run with `uv run pytest` |
 | `data/raw/` | Original input snapshot (ignored) and its committed source metadata `telco.source.json` |
 | `data/processed/` | Generated splits (later TPs, ignored) |
-| `artifacts/` | Generated model files (later TPs, ignored) |
+| `artifacts/` | Generated model files and their metadata (ignored) |
 | `reports/` | Generated reports (ignored); small reports to submit are copied to `evidence/` |
 | `evidence/` | Non-sensitive proof of each TP (environment records, data overview, answers) |
 | `k8s/`, `pipelines/` | Deployment and orchestration (later TPs) |
 
+## TP02 - Training pipeline
+
+### Train
+
+```sh
+uv sync --locked
+uv run python scripts/download_data.py          # if data/raw/telco.csv is absent
+uv run python scripts/train.py --config configs/tp02_train.json
+```
+
+Everything the run depends on is in `configs/tp02_train.json`: data hash, split seed (42) and fractions (60/20/20, stratified on `Churn`), decision threshold (0.5), the three candidates and their parameters, and the selection rule. Training takes a few seconds.
+
+What it does:
+
+1. checks the CSV hash and splits customers into train / validation / test (the test set is never used in TP02);
+2. milestone 1: logistic regression on `tenure` + `MonthlyCharges` vs a majority-class baseline;
+3. fits a fresh `Pipeline` (preprocessing + classifier) per candidate on the training split, with the six features, and evaluates on validation;
+4. picks a model with the rule fixed in the config (validation average precision, simpler model if within 0.01);
+5. saves the fitted pipeline and its record.
+
+Outputs (both folders are git-ignored):
+
+| File | Content |
+|---|---|
+| `artifacts/tp02/pipeline.joblib` | Fitted preprocessing + classifier, one object |
+| `artifacts/tp02/metadata.json` | Data hash, split seed, feature roles, preprocessing policy, model params, metrics, threshold, git commit, package versions, artifact SHA-256 |
+| `artifacts/tp02/split_allocation.csv` | `customerID` -> `train` / `valid` / `test` |
+| `reports/tp02/comparison.csv` | Baseline + 3 learned models, same split, same metrics |
+| `reports/tp02/selection.json` | Selection rule and decision |
+
+A copy of the small files (everything except `pipeline.joblib`) is committed in `evidence/tp02/`.
+
+### Model inputs
+
+| Feature | Type | Missing value | Other rules |
+|---|---|---|---|
+| `tenure`, `MonthlyCharges`, `TotalCharges` | number (or numeric text) | blank / None / NaN -> training median | non-numeric text is rejected |
+| `Contract`, `InternetService`, `PaymentMethod` | text | blank / None / NaN -> most frequent training category | unseen category -> ignored (all-zero one-hot) |
+
+`customerID` and `Churn` are never inputs. A missing feature column raises an error. Parsing lives in `churnlab.data.parse_features` and is the same at training and inference.
+
+### Predict and check
+
+```sh
+uv run python scripts/predict.py --input examples/new_customers.csv --output predictions.csv
+uv run python scripts/check_reload.py     # fresh process: reload, predict a saved batch, compare
+uv run python scripts/check_pipeline.py   # split, leakage, missing values, unseen category, schema checks
+uv run pytest
+```
+
+`pipeline.joblib` is a pickle: only load a file you trust, with the package versions listed in `metadata.json`. `predict.py` verifies the artifact SHA-256 before loading it.
+
 ## What is not reproduced yet
 
-The lock file does not pin the OS, CPU architecture or hardware. A hash does not establish label quality or the absence of leakage. No model, training configuration or random seed exists yet: those come with later TPs.
+The lock file does not pin the OS, CPU architecture or hardware. A hash does not establish label quality or the absence of leakage. Training runs are recorded in a JSON file, not in an experiment tracker (next TP). The test set has not been evaluated yet, and the predicted probabilities are not calibrated.

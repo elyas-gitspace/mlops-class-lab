@@ -1,0 +1,220 @@
+{
+  "created_at": "2026-10-21T17:05:48+00:00",
+  "artifact": {
+    "file": "pipeline.joblib",
+    "sha256": "289cd06d2d6a814941a3a5d36b263b781c8d13c8a3dd03fb9dc38e2cf35113b1",
+    "format": "joblib (pickle) - load trusted files only, with the package versions below",
+    "content": "fitted sklearn Pipeline: preprocessor (ColumnTransformer) + classifier"
+  },
+  "task": {
+    "target": "Churn",
+    "positive_class": "Churn = 'Yes', encoded 1",
+    "negative_class": "Churn = 'No', encoded 0",
+    "score": "predict_proba column of class 1",
+    "decision_threshold": 0.5,
+    "decision_rule": "predict churn when score >= threshold"
+  },
+  "data": {
+    "path": "data/raw/telco.csv",
+    "sha256": "16320c9c1ec72448db59aa0a26a0b95401046bef5d02fd3aeb906448e3055e91",
+    "source_url": "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/1fd6fd70906479be1712e64cfc0ea89f58466629/data/Telco-Customer-Churn.csv",
+    "source_commit": "1fd6fd70906479be1712e64cfc0ea89f58466629",
+    "rows": 7043
+  },
+  "split": {
+    "seed": 42,
+    "train_fraction": 0.6,
+    "valid_fraction": 0.2,
+    "test_fraction": 0.2,
+    "stratify_on": "Churn",
+    "allocation_file": "split_allocation.csv",
+    "allocation_sha256": "a981175e5fa0ef378bc7cea8b18f5db669157ad01a9f532239e30514bc791f16",
+    "summary": {
+      "train": {
+        "rows": 4225,
+        "churn_yes": 1121,
+        "churn_rate": 0.2653
+      },
+      "valid": {
+        "rows": 1409,
+        "churn_yes": 374,
+        "churn_rate": 0.2654
+      },
+      "test": {
+        "rows": 1409,
+        "churn_yes": 374,
+        "churn_rate": 0.2654
+      }
+    },
+    "test_set": "reserved: not used for training, comparison or selection"
+  },
+  "features": {
+    "identifier_not_input": "customerID",
+    "target_not_input": "Churn",
+    "numeric": [
+      "tenure",
+      "MonthlyCharges",
+      "TotalCharges"
+    ],
+    "categorical": [
+      "Contract",
+      "InternetService",
+      "PaymentMethod"
+    ],
+    "input_types": {
+      "tenure": "number or numeric text; blank/None/NaN = missing",
+      "MonthlyCharges": "number or numeric text; blank/None/NaN = missing",
+      "TotalCharges": "number or numeric text; blank/None/NaN = missing",
+      "Contract": "text; blank/None/NaN = missing",
+      "InternetService": "text; blank/None/NaN = missing",
+      "PaymentMethod": "text; blank/None/NaN = missing"
+    },
+    "parsing": "churnlab.data.parse_features (stateless, applied before the pipeline)"
+  },
+  "preprocessing": {
+    "numeric": "SimpleImputer(median) -> StandardScaler, learned on training data",
+    "categorical": "SimpleImputer(most_frequent) -> OneHotEncoder(handle_unknown='ignore')",
+    "missing_numeric": "replaced by the training median",
+    "missing_categorical": "replaced by the most frequent training category",
+    "unknown_category": "encoded as all zeros for that feature; no error, no reliability guarantee",
+    "malformed_numeric_text": "rejected with ValueError during parsing",
+    "missing_feature_column": "rejected with ValueError during parsing",
+    "learned_numeric_medians": {
+      "tenure": 29.0,
+      "MonthlyCharges": 70.55,
+      "TotalCharges": 1373.625
+    },
+    "learned_categories": {
+      "Contract": [
+        "Month-to-month",
+        "One year",
+        "Two year"
+      ],
+      "InternetService": [
+        "DSL",
+        "Fiber optic",
+        "No"
+      ],
+      "PaymentMethod": [
+        "Bank transfer (automatic)",
+        "Credit card (automatic)",
+        "Electronic check",
+        "Mailed check"
+      ]
+    }
+  },
+  "model": {
+    "name": "random_forest",
+    "estimator": "RandomForestClassifier",
+    "params": {
+      "bootstrap": true,
+      "ccp_alpha": 0.0,
+      "class_weight": null,
+      "criterion": "gini",
+      "max_depth": 8,
+      "max_features": "sqrt",
+      "max_leaf_nodes": null,
+      "max_samples": null,
+      "min_impurity_decrease": 0.0,
+      "min_samples_leaf": 5,
+      "min_samples_split": 2,
+      "min_weight_fraction_leaf": 0.0,
+      "monotonic_cst": null,
+      "n_estimators": 300,
+      "n_jobs": 1,
+      "oob_score": false,
+      "random_state": 42,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "fit_seconds": 0.3864,
+    "trained_on": "train split only"
+  },
+  "validation_metrics": {
+    "average_precision": 0.6661705580991093,
+    "roc_auc": 0.8529166343744349,
+    "precision": 0.6476868327402135,
+    "recall": 0.48663101604278075,
+    "f1": 0.5557251908396946,
+    "accuracy": 0.7934705464868701,
+    "predicted_positive_rate": 0.1994322214336409,
+    "threshold": 0.5,
+    "confusion_matrix": {
+      "labels": [
+        0,
+        1
+      ],
+      "label_meaning": {
+        "0": "No churn",
+        "1": "Churn"
+      },
+      "rows": "actual",
+      "columns": "predicted",
+      "matrix": [
+        [
+          936,
+          99
+        ],
+        [
+          192,
+          182
+        ]
+      ],
+      "tn": 936,
+      "fp": 99,
+      "fn": 192,
+      "tp": 182
+    }
+  },
+  "selection": {
+    "selected_model": "random_forest",
+    "metric": "average_precision",
+    "evaluated_on": "valid",
+    "tolerance": 0.01,
+    "rule": "Among learned candidates, take the best validation average precision. If a simpler candidate (lower complexity_rank) is within `tolerance` of the best, choose the simplest of them. Baseline is never selected. Test set is not used.",
+    "best_model_by_metric": "random_forest",
+    "best_value": 0.6662,
+    "selected_value": 0.6662,
+    "candidates_within_tolerance": [
+      "random_forest"
+    ],
+    "ranking": [
+      {
+        "model": "random_forest",
+        "average_precision": 0.6662
+      },
+      {
+        "model": "logistic_regression",
+        "average_precision": 0.6475
+      },
+      {
+        "model": "decision_tree",
+        "average_precision": 0.6173
+      },
+      {
+        "model": "baseline_most_frequent",
+        "average_precision": 0.2654
+      }
+    ]
+  },
+  "code": {
+    "git_commit": "17797153d3f29038cd11c615eb61bc4ebd448086",
+    "git_branch": "feat/tp02-training-pipeline",
+    "code_dirty": false,
+    "entry_point": "uv run python scripts/train.py --config configs/tp02_train.json",
+    "config_file": "configs/tp02_train.json",
+    "config_sha256": "288a5caeb338a5b5931c657450d90d2f3fc1ad143ef5f5bd244ccd7c40d06e91"
+  },
+  "environment": {
+    "python": "3.11.16",
+    "platform": "Linux-6.8.0-138-generic-aarch64-with-glibc2.35",
+    "packages": {
+      "churnlab": "0.1.0",
+      "scikit-learn": "1.5.2",
+      "pandas": "2.2.3",
+      "numpy": "1.26.4",
+      "scipy": "1.17.1",
+      "joblib": "1.6.0"
+    }
+  }
+}
