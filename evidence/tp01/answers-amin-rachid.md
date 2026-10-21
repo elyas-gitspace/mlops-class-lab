@@ -1,63 +1,63 @@
-# TP01 - Réponses (Amin Rachid)
+# TP01 - Answers (Amin Rachid)
 
-Équipe : Elyas Meziani, Michael Li, Amin Rachid. Dépôt : https://github.com/elyas-gitspace/mlops-class-lab
+Team: Elyas Meziani, Michael Li, Amin Rachid. Repository: https://github.com/elyas-gitspace/mlops-class-lab
 
-Elyas a monté le projet de départ et la PR sur le README. De mon côté, j'ai repris le projet sur mon Mac pour vérifier qu'il se reproduisait sur une autre machine (partie D), et j'ai rédigé les réponses ci-dessous.
+Elyas set up the starter project and the README pull request. On my side, I rebuilt the project on my Mac to check that it could be reproduced on another machine (Part D), and I wrote the answers below.
 
-## Partie A - Le projet et les données
+## Part A - The project and the data
 
-**A1. Pourquoi le CSV brut, un modèle entraîné et le code n'ont-ils pas le même rôle dans le dépôt ?**
+**A1. Why do the raw CSV, a fitted model and the source code play different roles in the repository?**
 
-Ces trois éléments n'ont pas la même origine, et c'est ce qui détermine où ils doivent vivre. Le code, c'est ce qu'on écrit nous-mêmes. Il est petit, il se relit en PR et il a donc toute sa place dans Git. Le CSV brut, c'est ce qu'on reçoit. On ne doit jamais le modifier, et plutôt que de le committer, on l'identifie par son URL source et son empreinte SHA-256 (enregistrées dans `data/raw/telco.source.json`). Enfin, le modèle, c'est ce qu'on produit à partir du code, des données et d'une configuration. Il peut être régénéré, et il ira dans un stockage d'artefacts dans les prochains TP, pas dans Git. Mélanger les trois revient à ne plus savoir ce qui a été écrit, reçu ou généré.
+These three things do not come from the same place, and that is what decides where they should live. The code is what we write ourselves. It is small, it gets reviewed in a PR, so it belongs in Git. The raw CSV is what we receive. We must never edit it, and rather than committing it, we identify it by its source URL and its SHA-256 hash (recorded in `data/raw/telco.source.json`). Finally, the model is what we produce from the code, the data and a configuration. It can be regenerated, and it will go into an artifact store in later TPs, not into Git. Mixing the three means we no longer know what was written, what was received and what was generated.
 
-**A2. Pourquoi inclure `Churn` dans les entrées du modèle invaliderait-il la tâche ?**
+**A2. Why would including `Churn` among the model inputs invalidate the prediction task?**
 
-`Churn` est exactement la colonne qu'on cherche à prédire. Si on la donne au modèle, il n'a plus rien à apprendre : il recopie la réponse. Cela donnerait un score presque parfait en évaluation, alors qu'en production la valeur de `Churn` n'existe pas encore au moment où l'on fait la prédiction. C'est ce qu'on appelle une fuite de la cible (« target leakage »), et c'est le genre d'erreur qui ne se voit pas dans les métriques mais rend le modèle inutilisable.
+`Churn` is exactly the column we are trying to predict. If we give it to the model, there is nothing left to learn: it just copies the answer. That would give an almost perfect score in evaluation, while in production the value of `Churn` does not exist yet at the moment we make the prediction. This is called target leakage, and it is the kind of mistake that does not show in the metrics but makes the model useless.
 
-## Partie B - L'environnement Python
+## Part B - The Python environment
 
-1. **Contrainte Python** : dans `pyproject.toml`, `requires-python = ">=3.11,<3.13"`. **Dépendance directe** : `numpy~=1.26.0`.
-2. **La même dépendance dans `uv.lock`** : numpy y est figé en version `1.26.4`, avec l'URL et le hash de chaque fichier téléchargeable (« wheel »).
-3. **Dépendance transitive** : `uv tree` montre `scipy 1.17.1` sous `scikit-learn`. On ne l'a jamais déclarée nous-mêmes. C'est scikit-learn qui en a besoin. C'est la même chose pour `python-dateutil` et `tzdata`, tirées par `pandas`.
-4. **`pyproject.toml`, `uv.lock` et `.venv/`** : `pyproject.toml` dit ce dont le projet a besoin, avec des plages de versions autorisées. `uv.lock` dit ce qui a réellement été choisi dans ces plages, pour toutes les dépendances (directes et transitives). `.venv/` est l'installation concrète sur une machine donnée. Il se régénère à partir du lock et ne se committe jamais.
+1. **Python constraint**: in `pyproject.toml`, `requires-python = ">=3.11,<3.13"`. **Direct dependency**: `numpy~=1.26.0`.
+2. **The same dependency in `uv.lock`**: numpy is pinned to version `1.26.4`, with the URL and hash of each downloadable file (wheel).
+3. **Transitive dependency**: `uv tree` shows `scipy 1.17.1` under `scikit-learn`. We never declared it ourselves. It is scikit-learn that needs it. The same goes for `python-dateutil` and `tzdata`, pulled in by `pandas`.
+4. **`pyproject.toml`, `uv.lock` and `.venv/`**: `pyproject.toml` says what the project needs, with allowed version ranges. `uv.lock` says what was actually chosen within those ranges, for every dependency (direct and transitive). `.venv/` is the concrete installation on one given machine. It is rebuilt from the lock and never committed.
 
-**B3.** `numpy ~= 1.26.0` accepte n'importe quelle version `1.26.x`, alors que `numpy==1.26.4` n'en accepte qu'une seule. En pratique, la plage va dans `pyproject.toml` et la version exacte retenue est notée dans `uv.lock`. Une plage laisse de la marge pour les correctifs. Le lock garantit que tout le monde installe la même chose.
+**B3.** `numpy ~= 1.26.0` accepts any `1.26.x` version, whereas `numpy==1.26.4` accepts only one. In practice, the range goes in `pyproject.toml` and the exact version that was picked is written in `uv.lock`. A range leaves room for bug-fix releases. The lock guarantees that everyone installs the same thing.
 
-## Partie C - Les données Telco
+## Part C - The Telco data
 
-1. **Pourquoi une classification ?** La cible `Churn` ne prend que deux valeurs (`Yes` ou `No`). On prédit une catégorie, pas une quantité.
-2. **Que dit le déséquilibre des classes sur l'accuracy ?** Seulement 26,54 % des clients partent (1 869 sur 7 043). Un modèle qui répondrait systématiquement « No » obtiendrait déjà 73,5 % d'accuracy sans détecter un seul client sur le départ. L'accuracy seule ne suffira donc pas. Il faudra regarder la précision, le rappel, le F1 ou l'AUC.
-3. **Pourquoi `TotalCharges` est lue comme du texte ?** Onze lignes contiennent un espace (`" "`) à la place d'un nombre. Il suffit d'une seule valeur non numérique pour que pandas lise toute la colonne en `object`, même si elle représente un montant.
-4. **Pourquoi `isna()` ne suffit pas ?** Pour pandas, `" "` n'est pas une valeur manquante. C'est une chaîne de caractères non vide. Il faut donc la chercher explicitement avec `.str.strip().eq("")`, ou convertir la colonne avec `pd.to_numeric(..., errors="coerce")` pour que ces cases deviennent des `NaN`.
-5. **Quelle preuve montre qu'on a inspecté le même fichier ?** Le SHA-256 (`16320c9c…5e91`), associé à l'URL source figée sur un commit IBM précis. Le nom du fichier ne prouve rien, et on l'a vu concrètement. Le fichier `datasets.csv` qu'on avait reçu contenait exactement les mêmes 7 043 lignes, mais il avait été réenregistré (BOM au début, fins de ligne Windows, chaque ligne entre guillemets). Son hash était donc `62ca518b…` et le script d'inspection l'a refusé. J'en retiens qu'un même contenu « à l'œil » ne veut pas dire les mêmes octets.
+1. **Why classification?** The target `Churn` only takes two values (`Yes` or `No`). We predict a category, not a quantity.
+2. **What does the class balance say about accuracy?** Only 26.54 % of customers leave (1,869 out of 7,043). A model that always answered "No" would already reach 73.5 % accuracy without detecting a single churner. Accuracy alone will therefore not be enough. We will have to look at precision, recall, F1 or AUC.
+3. **Why is `TotalCharges` read as text?** Eleven rows contain a space (`" "`) instead of a number. A single non-numeric value is enough for pandas to read the whole column as `object`, even though it represents an amount.
+4. **Why is `isna()` not enough?** For pandas, `" "` is not a missing value. It is a non-empty string. It has to be found explicitly with `.str.strip().eq("")`, or the column has to be converted with `pd.to_numeric(..., errors="coerce")` so that these cells become `NaN`.
+5. **What evidence shows we inspected the same file?** The SHA-256 (`16320c9c…5e91`), together with the source URL pinned to a specific IBM commit. The file name proves nothing, and we saw it concretely. The `datasets.csv` file we had received contained exactly the same 7,043 rows, but it had been re-saved (a BOM at the start, Windows line endings, every line wrapped in quotes). Its hash was therefore `62ca518b…` and the inspection script rejected it. What I take from this is that the same content "to the eye" does not mean the same bytes.
 
-## Partie D - Recréation de l'environnement sur macOS
+## Part D - Recreating the environment on macOS
 
-Elyas avait déjà produit les preuves sur sa machine Linux. Plutôt que de refaire la même chose au même endroit, j'ai refait la partie D sur mon Mac pour vérifier que le projet se reproduisait vraiment ailleurs. Les fichiers sont dans `evidence/tp01/macos/`.
+Elyas had already produced the evidence on his Linux machine. Rather than doing the same thing in the same place, I redid Part D on my Mac to check that the project really reproduced elsewhere. The files are in `evidence/tp01/macos/`.
 
-Concrètement, j'ai enregistré l'environnement dans `environment-before.json`, renommé `.venv/` en `.venv-backup/`, puis relancé `uv sync --locked` et les deux scripts. L'environnement recréé est identique à celui d'avant (Python 3.11.15, pandas 2.2.3, numpy 1.26.4, scikit-learn 1.5.2, churnlab 0.1.0). `uv.lock` et `pyproject.toml` n'ont pas bougé, et `uv run pytest` passe. Le rapport de données est identique à celui d'Elyas au caractère près (même hash, 7 043 lignes, 5 174 « No » et 1 869 « Yes », aucun doublon, 11 `TotalCharges` vides).
+Concretely, I recorded the environment in `environment-before.json`, renamed `.venv/` to `.venv-backup/`, then ran `uv sync --locked` and both scripts again. The recreated environment is identical to the one before (Python 3.11.15, pandas 2.2.3, numpy 1.26.4, scikit-learn 1.5.2, churnlab 0.1.0). `uv.lock` and `pyproject.toml` did not change, and `uv run pytest` passes. The data report is identical to Elyas's, character for character (same hash, 7,043 rows, 5,174 "No" and 1,869 "Yes", no duplicates, 11 blank `TotalCharges`).
 
-La comparaison avec Linux est plus intéressante. Les versions des paquets sont les mêmes, mais pas le système (macOS arm64 contre Linux aarch64), ni la version exacte de Python (3.11.15 contre 3.11.16), ni celle de uv (0.11.14 contre 0.12.13). Cela montre bien que le lock fige les paquets, pas l'interpréteur ni le système d'exploitation.
+The comparison with Linux is more interesting. The package versions are the same, but not the operating system (macOS arm64 versus Linux aarch64), nor the exact Python version (3.11.15 versus 3.11.16), nor the uv version (0.11.14 versus 0.12.13). This shows clearly that the lock file pins the packages, not the interpreter or the operating system.
 
-| Élément | Preuve produite dans le TP01 | Limite restante |
+| Item | Evidence produced in TP01 | Remaining limitation |
 |---|---|---|
-| Code | Commit Git | Les modifications non commitées ne sont pas couvertes par ce commit |
-| Choix des paquets | `pyproject.toml`, `uv.lock` | La plateforme et l'interpréteur peuvent changer l'installation (3.11.15 chez moi, 3.11.16 chez Elyas) |
-| Environnement installé | Relevés avant/après (Linux et macOS) | Ils ne capturent pas tous les détails du système ou du matériel |
-| Données source | URL source et SHA-256 | Cela ne garantit ni la qualité des labels ni l'absence de fuite |
-| Modèle entraîné | Pas encore produit | Il faudra des preuves d'entraînement, de configuration et d'artefacts dans les prochains TP |
+| Code | Git commit | Uncommitted edits are not covered by that commit |
+| Package selections | `pyproject.toml`, `uv.lock` | Platform and interpreter can change the installation (3.11.15 on my side, 3.11.16 on Elyas's) |
+| Installed environment | Before/after records (Linux and macOS) | They do not capture every OS or hardware detail |
+| Source data | Source URL and SHA-256 | This guarantees neither label quality nor the absence of leakage |
+| Trained model | Not produced yet | Training, configuration and artifact evidence will be needed in later TPs |
 
-## Partie E - Travail par pull request
+## Part E - Working through a pull request
 
-- **PR** : https://github.com/elyas-gitspace/mlops-class-lab/pull/1 (`docs/telco-onboarding` vers `main`).
-- **Commits** : `b60315c` (projet initial), `bba201c` (modification du README), `7c7cdfd` (merge dans `main`).
-- **Question du relecteur** (@PraiseTheLemon) : « Was the onboarding process not reproducible before? » Pas complètement. Les paquets étaient déjà figés par `pyproject.toml` et `uv.lock`, mais le README ne disait ni d'où venaient les données, ni quels octets attendre, ni comment les vérifier. La PR ajoute l'URL figée, le SHA-256, les commandes d'inspection avec les résultats attendus, la colonne cible et le rôle des dossiers.
-- **Vérification sur une autre machine** : ma branche `evidence/macos-reproduction` ajoute les preuves de la partie D.
+- **PR**: https://github.com/elyas-gitspace/mlops-class-lab/pull/1 (`docs/telco-onboarding` into `main`).
+- **Commits**: `b60315c` (initial project), `bba201c` (README change), `7c7cdfd` (merge into `main`).
+- **Reviewer question** (@PraiseTheLemon): "Was the onboarding process not reproducible before?" Not completely. The packages were already pinned by `pyproject.toml` and `uv.lock`, but the README said neither where the data came from, nor which bytes to expect, nor how to check them. The PR adds the pinned URL, the SHA-256, the inspection commands with the expected results, the target column and the role of each folder.
+- **Check on another machine**: my branch `evidence/macos-reproduction` adds the Part D evidence.
 
-## Partie F - Restaurer ou retirer de l'index
+## Part F - Restoring versus unstaging
 
-La différence tient à ce qu'on perd. `git restore README.md` (F1) remet le fichier dans l'état du dernier commit : la modification non indexée est perdue, et Git ne peut pas la récupérer puisqu'elle n'a jamais été enregistrée. `git restore --staged README.md` (F2) ne touche pas au fichier. Il retire seulement la modification de l'index (la « staging area »), si bien qu'elle reste dans le fichier mais ne fera pas partie du prochain commit. Le premier efface donc du travail, le second ne fait que changer ce qui sera commité.
+The difference lies in what is lost. `git restore README.md` (F1) puts the file back in the state of the last commit: the unstaged change is lost, and Git cannot bring it back since it was never recorded. `git restore --staged README.md` (F2) does not touch the file. It only removes the change from the index (the staging area), so it stays in the file but will not be part of the next commit. The first one therefore erases work, while the second only changes what will be committed.
 
-## Ce que le TP01 ne reproduit pas encore
+## What TP01 does not reproduce yet
 
-Il n'y a pour l'instant ni modèle, ni configuration d'entraînement, ni graine aléatoire, ni métriques. Le système, la version exacte de l'interpréteur et le matériel ne sont pas figés, comme l'a montré la comparaison entre mon Mac et la machine d'Elyas. Enfin, le hash prouve quels octets on a utilisés, pas que les labels sont justes. Cette base est nécessaire, mais elle ne garantit pas encore qu'un entraînement donnera deux fois le même résultat.
+For now there is no model, no training configuration, no random seed and no metrics. The operating system, the exact interpreter version and the hardware are not pinned, as the comparison between my Mac and Elyas's machine showed. Finally, the hash proves which bytes we used, not that the labels are correct. This foundation is necessary, but it does not yet guarantee that a training run will give the same result twice.
