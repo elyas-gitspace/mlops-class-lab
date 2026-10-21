@@ -36,5 +36,4 @@ mlartifacts/
 *.keras
 
 # Submitted TP02 artifacts (trusted, hash recorded in the metadata.json next to them)
-!evidence/tp02/pipeline.joblib
 !evidence/tp02/macos/pipeline.joblib

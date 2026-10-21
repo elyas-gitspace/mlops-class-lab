@@ -107,7 +107,7 @@ Submitted artifact: `evidence/tp02/macos/pipeline.joblib` (5.3 MB, SHA-256 `e42a
 uv run python scripts/predict.py --artifact-dir evidence/tp02/macos --input examples/new_customers.csv --output predictions.csv
 ```
 
-`predict.py` refuses the file if its SHA-256 does not match its `metadata.json`. The Linux run's artifact (`289cd06d…`, described by `evidence/tp02/metadata.json`) goes in `evidence/tp02/pipeline.joblib` when it is added.
+`predict.py` refuses the file if its SHA-256 does not match its `metadata.json`. The Linux run's artifact (`289cd06d…`, described by `evidence/tp02/metadata.json`) is attached to the GitHub release [`tp02-model-v1`](https://github.com/elyas-gitspace/mlops-class-lab/releases/tag/tp02-model-v1). To use it, download it into `artifacts/tp02/` next to a copy of `evidence/tp02/metadata.json`, then run `predict.py` (default `--artifact-dir artifacts/tp02`).
 
 ### Model inputs
 
