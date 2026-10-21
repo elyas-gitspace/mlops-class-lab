@@ -2,9 +2,9 @@
 
 **Student:** Elyas Meziani
 **Repository:** https://github.com/elyas-gitspace/mlops-class-lab
-**Pull request:** `<PR URL - to fill after opening the PR>`
-**Reviewed commit (README change):** `<commit hash on main after merge>`
-**Initial commit:** `b60315c Initialize Telco churn project` (may change if history is rewritten before push)
+**Pull request:** https://github.com/elyas-gitspace/mlops-class-lab/pull/1
+**Reviewed commit (README change):** `bba201c` (README change), merged into `main` by `7c7cdfd`
+**Initial commit:** `b60315c Initialize Telco churn project`
 
 ## Part A
 
@@ -62,8 +62,8 @@ Note: the evidence was recorded in a Linux aarch64 environment (`platform` field
 - `.gitignore` excludes `.venv/`, `.venv-backup*/`, `.env`, the raw CSV, `data/processed/`, `artifacts/`, `reports/` and model files.
 - The data overview was copied to `evidence/tp01/data-overview.json` without un-ignoring `reports/`.
 - PR `docs/telco-onboarding` → `main` adds: business question and target, Python version and setup command, data source + hash + inspection commands, directory roles, and the snapshot vs event-time/intervention distinction.
-- Reviewer question: `<partner's question>`
-- My answer / change made: `<answer>`
+- Reviewer (@PraiseTheLemon) question: *"Was the onboarding process not reproducible before?"*
+- My answer: Only partly. Before this PR, `pyproject.toml` and `uv.lock` already fixed the packages, but the README only gave two setup commands. A teammate had to guess where the dataset came from, which bytes were expected and how to check them, and what the project is about. The PR adds the commit-pinned source URL, the SHA-256, the download/inspection commands with expected counts, the target column, the directory roles and the snapshot limitation, so setup and data checks can be repeated without guessing.
 
 ## Part F
 
