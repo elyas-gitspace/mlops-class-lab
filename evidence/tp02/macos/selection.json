@@ -1,0 +1,31 @@
+{
+  "selected_model": "random_forest",
+  "metric": "average_precision",
+  "evaluated_on": "valid",
+  "tolerance": 0.01,
+  "rule": "Among learned candidates, take the best validation average precision. If a simpler candidate (lower complexity_rank) is within `tolerance` of the best, choose the simplest of them. Baseline is never selected. Test set is not used.",
+  "best_model_by_metric": "random_forest",
+  "best_value": 0.6665,
+  "selected_value": 0.6665,
+  "candidates_within_tolerance": [
+    "random_forest"
+  ],
+  "ranking": [
+    {
+      "model": "random_forest",
+      "average_precision": 0.6665
+    },
+    {
+      "model": "logistic_regression",
+      "average_precision": 0.6475
+    },
+    {
+      "model": "decision_tree",
+      "average_precision": 0.6173
+    },
+    {
+      "model": "baseline_most_frequent",
+      "average_precision": 0.2654
+    }
+  ]
+}

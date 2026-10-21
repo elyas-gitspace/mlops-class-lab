@@ -177,7 +177,7 @@ Running `train.py` twice gives the same allocation file, the same metrics and th
 
 ## Peer feedback
 
-> Reviewer: `<name>` · Issue found: `<what blocked them when following the README>` · Resolution: `<what I changed>`
+> Reviewer: Amin Rachid · Issue found: following only the README on macOS arm64 (same uv.lock, seed, config and split), the random forest gave validation average precision 0.6665 instead of 0.6662 and 193 false negatives instead of 192, while these answers said re-running gives the same metrics. · Resolution: the README now states that runs are identical on the same platform but tree ensembles can differ slightly across platforms (floating-point differences); the selection (random forest) is unchanged. Amin's macOS results are in `evidence/tp02/macos/`.
 
 ---
 

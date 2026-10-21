@@ -101,6 +101,14 @@ Outputs (both folders are git-ignored):
 
 A copy of the small files (everything except `pipeline.joblib`) is committed in `evidence/tp02/`.
 
+Submitted artifact: `evidence/tp02/macos/pipeline.joblib` (5.3 MB, SHA-256 `e42ab3f7…`, listed in the `metadata.json` next to it) is the selected random forest trained on macOS arm64 from the same code, config and split. It can be used without retraining:
+
+```sh
+uv run python scripts/predict.py --artifact-dir evidence/tp02/macos --input examples/new_customers.csv --output predictions.csv
+```
+
+`predict.py` refuses the file if its SHA-256 does not match its `metadata.json`. The Linux run's artifact (`289cd06d…`, described by `evidence/tp02/metadata.json`) goes in `evidence/tp02/pipeline.joblib` when it is added.
+
 ### Model inputs
 
 | Feature | Type | Missing value | Other rules |
@@ -123,4 +131,6 @@ uv run pytest
 
 ## What is not reproduced yet
 
-The lock file does not pin the OS, CPU architecture or hardware. A hash does not establish label quality or the absence of leakage. Training runs are recorded in a JSON file, not in an experiment tracker (next TP). The test set has not been evaluated yet, and the predicted probabilities are not calibrated.
+The lock file does not pin the OS, CPU architecture or hardware. A hash does not establish label quality or the absence of leakage. Training runs are recorded in a JSON file, not in an experiment tracker (next TP).
+
+Re-running `train.py` on the same platform gives identical metrics. Across platforms, tree ensembles can differ slightly because of floating-point differences, even with the same `uv.lock`, seed, config and split. On macOS arm64 the random forest reached a validation average precision of 0.6665 instead of 0.6662 on Linux aarch64, with one validation customer predicted differently; the split, the other models and the selection were identical (`evidence/tp02/macos/`). The fitted `pipeline.joblib` therefore has a different SHA-256 on each platform: always check it against the `metadata.json` that ships with it. The test set has not been evaluated yet, and the predicted probabilities are not calibrated.
