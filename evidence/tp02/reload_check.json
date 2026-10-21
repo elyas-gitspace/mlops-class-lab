@@ -1,0 +1,21 @@
+{
+  "artifact_sha256_verified": true,
+  "model": "random_forest",
+  "records": 25,
+  "input_columns": [
+    "customerID",
+    "tenure",
+    "MonthlyCharges",
+    "TotalCharges",
+    "Contract",
+    "InternetService",
+    "PaymentMethod"
+  ],
+  "label_column_present": false,
+  "fit_called": false,
+  "score_tolerance": 1e-12,
+  "max_abs_score_difference": 9.020562075079397e-17,
+  "same_customer_order": true,
+  "same_class_predictions": true,
+  "passed": true
+}
