@@ -1,6 +1,6 @@
 # TP01 - Answers (Amin Rachid)
 
-Partner: Elyas Meziani. Repository: https://github.com/elyas-gitspace/mlops-class-lab
+Team: Elyas Meziani, Michael Li, Amin Rachid. Repository: https://github.com/elyas-gitspace/mlops-class-lab
 
 ## Part A
 
@@ -46,9 +46,10 @@ Evidence in `evidence/tp01/macos/`. I saved `environment-before.json`, renamed `
 
 ## Part E - Pull request
 
-- PR URL: `TODO`
-- Reviewer question: `TODO`
-- Merge commit hash: `TODO`
+- PR URL: https://github.com/elyas-gitspace/mlops-class-lab/pull/1 (`docs/telco-onboarding` → `main`)
+- Commits: `b60315c` initial project · `bba201c` README change · `7c7cdfd` merge into `main`
+- Reviewer question (@PraiseTheLemon): *Was the onboarding process not reproducible before?* Only partly: packages were already pinned by `pyproject.toml` and `uv.lock`, but the README did not say where the data came from, which bytes to expect or how to check them. The PR adds the pinned URL, the SHA-256, the inspection commands with expected counts, the target column and the folder roles.
+- Cross-machine check: branch `evidence/macos-reproduction` adds my macOS evidence (Part D above).
 
 ## Part F - Restore vs unstage
 
