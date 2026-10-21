@@ -1,0 +1,36 @@
+# Python environments
+.venv/
+.venv-backup/
+.venv-backup-*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Secrets and local state
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
+.ipynb_checkpoints/
+
+# Raw data: tracked through source URL + SHA-256 metadata, not committed
+data/raw/*.csv
+/datasets.csv
+data/processed/*
+!data/processed/.gitkeep
+
+# Generated outputs
+artifacts/*
+!artifacts/.gitkeep
+reports/*
+!reports/.gitkeep
+mlruns/
+mlartifacts/
+*.pkl
+*.joblib
+*.h5
+*.keras
