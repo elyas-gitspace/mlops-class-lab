@@ -1,0 +1,51 @@
+{
+  "data": {
+    "path": "data/raw/telco.csv",
+    "source_metadata": "data/raw/telco.source.json",
+    "sha256": "16320c9c1ec72448db59aa0a26a0b95401046bef5d02fd3aeb906448e3055e91"
+  },
+  "split": {
+    "seed": 42,
+    "train_fraction": 0.6,
+    "valid_fraction": 0.2,
+    "test_fraction": 0.2,
+    "stratify_on": "Churn"
+  },
+  "threshold": 0.5,
+  "selection": {
+    "metric": "average_precision",
+    "evaluated_on": "valid",
+    "tolerance": 0.01,
+    "rule": "Among learned candidates, take the best validation average precision. If a simpler candidate (lower complexity_rank) is within `tolerance` of the best, choose the simplest of them. Baseline is never selected. Test set is not used."
+  },
+  "baseline": {
+    "name": "baseline_most_frequent",
+    "estimator": "DummyClassifier",
+    "params": {"strategy": "most_frequent"}
+  },
+  "candidates": [
+    {
+      "name": "logistic_regression",
+      "estimator": "LogisticRegression",
+      "params": {"max_iter": 1000},
+      "complexity_rank": 1
+    },
+    {
+      "name": "decision_tree",
+      "estimator": "DecisionTreeClassifier",
+      "params": {"max_depth": 5, "min_samples_leaf": 20},
+      "complexity_rank": 2
+    },
+    {
+      "name": "random_forest",
+      "estimator": "RandomForestClassifier",
+      "params": {"n_estimators": 300, "max_depth": 8, "min_samples_leaf": 5, "n_jobs": 1},
+      "complexity_rank": 3
+    }
+  ],
+  "output": {
+    "artifact_dir": "artifacts/tp02",
+    "report_dir": "reports/tp02",
+    "reference_batch_size": 25
+  }
+}
