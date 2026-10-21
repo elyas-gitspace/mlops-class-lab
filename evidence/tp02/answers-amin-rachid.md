@@ -1,108 +1,108 @@
-# TP02 - Réponses (Amin Rachid)
+# TP02 - Answers (Amin Rachid)
 
-Équipe : Elyas Meziani, Michael Li, Amin Rachid. Dépôt : https://github.com/elyas-gitspace/mlops-class-lab
+Team: Elyas Meziani, Michael Li, Amin Rachid. Repository: https://github.com/elyas-gitspace/mlops-class-lab
 
-Elyas a écrit le code du TP02 (modules `churnlab`, `scripts/train.py`, scripts de vérification). De mon côté, j'ai relu ce code, je l'ai relancé sur mon Mac en suivant uniquement le README, et j'ai comparé mes résultats aux siens. C'est cette relecture qui a fait remonter le seul vrai problème du TP (partie 6). Les réponses ci-dessous sont les miennes. Les preuves de ma reproduction sont dans `evidence/tp02/macos/`.
+Elyas wrote the TP02 code (the `churnlab` modules, `scripts/train.py` and the check scripts). On my side, I reviewed that code, ran it again on my Mac following only the README, and compared my results with his. That review is what surfaced the only real issue of the TP (Part 6). The answers below are my own. The evidence from my run is in `evidence/tp02/macos/`.
 
-## 1. Un premier modèle qui fonctionne
+## 1. A first model that works
 
-La tâche est une classification binaire. La classe positive est `Churn = Yes` (codée `1`). `customerID` sert uniquement à identifier les clients et à vérifier le découpage. Il n'est jamais donné au modèle, pas plus que `Churn`.
+The task is binary classification. The positive class is `Churn = Yes` (encoded `1`). `customerID` is only used to identify customers and to check the split. It is never given to the model, and neither is `Churn`.
 
-Le découpage est fait une seule fois, stratifié sur `Churn`, avec la graine `42` : 4 225 clients en train, 1 409 en validation et 1 409 en test, avec à chaque fois environ 26,5 % de départs. L'affectation de chaque client est enregistrée dans `split_allocation.csv`. Sur mon Mac, ce fichier est identique à celui d'Elyas pour les 7 043 clients. Le jeu de test n'a servi à rien dans ce TP.
+The split is done once, stratified on `Churn`, with seed `42`: 4,225 customers in train, 1,409 in validation and 1,409 in test, each with about 26.5 % churners. The allocation of every customer is saved in `split_allocation.csv`. On my Mac, this file is identical to Elyas's for all 7,043 customers. The test set was not used at all in this TP.
 
-Avec seulement `tenure` et `MonthlyCharges`, la régression logistique obtient 0,783 d'accuracy en validation, contre 0,735 pour la baseline qui prédit toujours « No ». Les matrices de confusion se lisent `[[TN, FP], [FN, TP]]` (lignes = réalité, colonnes = prédiction, 0 = reste, 1 = part).
+With only `tenure` and `MonthlyCharges`, logistic regression reaches 0.783 accuracy on validation, against 0.735 for the baseline that always predicts "No". Confusion matrices read `[[TN, FP], [FN, TP]]` (rows = actual, columns = predicted, 0 = stays, 1 = leaves).
 
-| Modèle | Accuracy | Matrice de confusion |
+| Model | Accuracy | Confusion matrix |
 |---|---:|---|
-| Baseline `DummyClassifier` (ajustée sur le train) | 0,7346 | `[[1035, 0], [374, 0]]` |
-| Régression logistique (2 variables) | 0,7828 | `[[950, 85], [221, 153]]` |
+| Baseline `DummyClassifier` (fitted on train) | 0.7346 | `[[1035, 0], [374, 0]]` |
+| Logistic regression (2 features) | 0.7828 | `[[950, 85], [221, 153]]` |
 
-**Que donnerait un système qui prédit toujours « pas de départ » ?** Exactement la baseline : 73,5 % d'accuracy et aucun client sur le départ détecté. C'est le meilleur exemple de ce qu'on avait vu au TP01 avec le déséquilibre des classes.
+**What would a system that always predicts "no churn" achieve?** Exactly the baseline: 73.5 % accuracy and not a single churner detected. It is the clearest example of what we saw in TP01 with the class imbalance.
 
-**Une forte accuracy peut-elle coexister avec zéro churner trouvé ?** Oui, et la baseline le prouve. Avec 26,5 % de positifs, l'accuracy récompense surtout le fait de bien classer ceux qui restent, alors que ce sont ceux qui partent qui intéressent l'équipe.
+**Can high accuracy coexist with finding zero churners?** Yes, and the baseline proves it. With 26.5 % positives, accuracy mostly rewards classifying the customers who stay correctly, whereas the team cares about the ones who leave.
 
-**Quelles données ont le droit d'influencer le choix du modèle ?** Le train pour apprendre, la validation pour comparer. Le test doit rester intact jusqu'à l'évaluation finale. Sinon, on finit par choisir le modèle qui a eu de la chance sur ce jeu précis.
+**Which data are allowed to influence model selection?** Train to learn, validation to compare. The test set must stay untouched until the final evaluation. Otherwise, we end up picking the model that got lucky on that specific set.
 
-## 2. Prétraitement et modèle dans une seule Pipeline
+## 2. Preprocessing and model in a single Pipeline
 
-Les six variables sont `tenure`, `MonthlyCharges` et `TotalCharges` (numériques), puis `Contract`, `InternetService` et `PaymentMethod` (catégorielles).
+The six features are `tenure`, `MonthlyCharges` and `TotalCharges` (numeric), then `Contract`, `InternetService` and `PaymentMethod` (categorical).
 
-Avant la pipeline, une étape de lecture (`parse_features`) convertit les colonnes. Elle n'apprend rien et s'applique de la même façon à l'entraînement et à l'inférence. Les 11 `TotalCharges` vides deviennent des valeurs manquantes. J'ai vérifié qu'il s'agit uniquement de clients avec `tenure = 0`, c'est-à-dire des nouveaux clients qui n'ont pas encore été facturés. En revanche, un texte comme `"abc"` provoque une erreur. Plutôt que d'utiliser directement `pd.to_numeric(errors="coerce")`, qui transformerait silencieusement `"abc"` en `NaN`, le code marque d'abord les vraies cases vides, convertit, puis échoue si une valeur non vide n'a pas pu être lue. C'est exactement la distinction que demande l'énoncé entre une valeur manquante autorisée et une donnée malformée.
+Before the pipeline, a parsing step (`parse_features`) converts the columns. It learns nothing and is applied the same way at training and at inference. The 11 blank `TotalCharges` become missing values. I checked that they all belong to customers with `tenure = 0`, meaning new customers who have not been billed yet. On the other hand, a text like `"abc"` raises an error. Rather than using `pd.to_numeric(errors="coerce")` directly, which would silently turn `"abc"` into `NaN`, the code first marks the truly blank cells, converts, and then fails if a non-blank value could not be read. That is exactly the distinction the handout asks for between an allowed missing value and malformed data.
 
-Dans la pipeline, un `ColumnTransformer` envoie chaque colonne dans sa branche :
+Inside the pipeline, a `ColumnTransformer` sends each column to its branch:
 
-- **Numérique** : `SimpleImputer(strategy="median")` puis `StandardScaler`. Les médianes, moyennes et écarts-types sont appris sur le train.
-- **Catégorielle** : `SimpleImputer(strategy="most_frequent")` puis `OneHotEncoder(handle_unknown="ignore")`. La catégorie la plus fréquente et la liste des catégories sont apprises sur le train.
+- **Numeric**: `SimpleImputer(strategy="median")` then `StandardScaler`. Medians, means and standard deviations are learned on train.
+- **Categorical**: `SimpleImputer(strategy="most_frequent")` then `OneHotEncoder(handle_unknown="ignore")`. The most frequent category and the list of categories are learned on train.
 
-Une catégorie jamais vue à l'entraînement (par exemple `"Three year"`) est encodée par des zéros sur toutes les colonnes de `Contract`. La prédiction ne plante pas, mais cela ne veut pas dire qu'elle est fiable pour ce client.
+A category never seen during training (for example `"Three year"`) is encoded as zeros on every `Contract` column. The prediction does not crash, but that does not mean it is reliable for that customer.
 
-**Que font `fit`, `transform` et `predict` ?** `fit` apprend à partir des données (médianes, catégories, poids du modèle). `transform` applique ce qui a été appris sans rien modifier. `predict` enchaîne les transformations puis le modèle, toujours sans rien apprendre.
+**What do `fit`, `transform` and `predict` do?** `fit` learns from the data (medians, categories, model weights). `transform` applies what was learned without changing anything. `predict` chains the transformations and then the model, still without learning anything.
 
-**Que se passe-t-il si on ajuste le scaler sur la validation ?** Des informations de la validation entrent dans le modèle, donc ses scores deviennent trop optimistes. De plus, la validation ne serait plus transformée de la même manière que le train, ce qui fausse la comparaison.
+**What goes wrong if the scaler is fitted on validation data?** Information from validation leaks into the model, so its scores become too optimistic. Validation would also no longer be transformed the same way as train, which distorts the comparison.
 
-**Une Pipeline empêche-t-elle la fuite de données toute seule ?** Non. Si on appelle `fit` sur train et validation réunis, elle apprendra sur les deux sans rien dire. Elle garantit l'ordre des étapes, pas le choix des données qu'on lui donne.
+**Does a Pipeline prevent leakage on its own?** No. If we call `fit` on train and validation together, it will learn from both without complaining. It guarantees the order of the steps, not the choice of data we give it.
 
-**Qui ordonne quoi ?** La `Pipeline` ordonne les étapes (prétraiter, puis classer). Le `ColumnTransformer` aiguille les colonnes (numériques d'un côté, catégorielles de l'autre).
+**What orders what?** The `Pipeline` orders the steps (preprocess, then classify). The `ColumnTransformer` routes the columns (numeric on one side, categorical on the other).
 
-## 3. Comparer les modèles équitablement
+## 3. Comparing models fairly
 
-Les trois modèles et la baseline utilisent les mêmes six variables, le même découpage et les mêmes métriques. Chaque candidat reçoit une pipeline neuve (`build_pipeline` est rappelé à chaque fois), donc aucun ne réutilise l'état appris par un autre.
+The three models and the baseline use the same six features, the same split and the same metrics. Each candidate gets a fresh pipeline (`build_pipeline` is called again every time), so none of them reuses the state learned by another.
 
-La métrique principale a été fixée dans `configs/tp02_train.json` avant de lancer la comparaison : l'average precision en validation, calculée à partir de la probabilité de la classe 1. Elle mesure la capacité du modèle à classer les clients qui partent au-dessus de ceux qui restent, sans dépendre d'un seuil, et elle ne se laisse pas tromper par le déséquilibre 73/27 comme l'accuracy. La règle de choix prévoit aussi une tolérance de 0,01 : si un modèle plus simple est à moins de 0,01 du meilleur, c'est lui qu'on garde.
+The primary metric was set in `configs/tp02_train.json` before running the comparison: validation average precision, computed from the class-1 probability. It measures how well the model ranks customers who leave above those who stay, without depending on a threshold, and unlike accuracy it is not fooled by the 73/27 imbalance. The selection rule also includes a 0.01 tolerance: if a simpler model is within 0.01 of the best one, that is the one we keep.
 
-| Modèle | AP (Linux) | AP (mon Mac) | Accuracy | Rappel à 0,5 |
+| Model | AP (Linux) | AP (my Mac) | Accuracy | Recall at 0.5 |
 |---|---:|---:|---:|---:|
-| Baseline | 0,2654 | 0,2654 | 0,7346 | 0,000 |
-| Régression logistique | 0,6475 | 0,6475 | 0,8041 | 0,529 |
-| Arbre de décision | 0,6173 | 0,6173 | 0,8027 | 0,602 |
-| Random forest | 0,6662 | 0,6665 | 0,7935 (0,7928 chez moi) | 0,487 (0,484 chez moi) |
+| Baseline | 0.2654 | 0.2654 | 0.7346 | 0.000 |
+| Logistic regression | 0.6475 | 0.6475 | 0.8041 | 0.529 |
+| Decision tree | 0.6173 | 0.6173 | 0.8027 | 0.602 |
+| Random forest | 0.6662 | 0.6665 | 0.7935 (0.7928 on mine) | 0.487 (0.484 on mine) |
 
-La random forest est retenue dans les deux cas. Son AP dépasse celle de la régression logistique d'environ 0,019, ce qui est au-dessus de la tolérance. Cela dit, ce n'est pas le modèle qui a la meilleure accuracy (la régression logistique) ni le meilleur rappel au seuil de 0,5 (l'arbre). À ce seuil, elle laisse passer environ la moitié des clients qui partent. Si l'équipe veut surtout les attraper, il faudra choisir le seuil sur la validation plutôt que de garder 0,5. Enfin, on ne peut pas dire que la random forest « bat » le premier modèle grâce à l'algorithme, puisque le nombre de variables est aussi passé de 2 à 6.
+The random forest is selected in both cases. Its AP is about 0.019 above logistic regression, which is beyond the tolerance. That said, it is not the model with the best accuracy (logistic regression) nor the best recall at the 0.5 threshold (the decision tree). At that threshold, it misses about half of the customers who leave. If the team mostly wants to catch them, the threshold should be chosen on validation rather than kept at 0.5. Finally, we cannot say that the random forest "beats" the first model because of the algorithm, since the number of features also went from 2 to 6.
 
-**Faut-il changer de découpage pour chaque modèle ?** Non. Les écarts mélangeraient alors l'effet du modèle et l'effet d'un jeu de validation plus ou moins facile. Avec le même découpage, la seule chose qui change, c'est le modèle.
+**Should the split change for each model?** No. The differences would then mix the effect of the model with the effect of an easier or harder validation set. With the same split, the only thing that changes is the model.
 
-**Le modèle le plus précis est-il celui dont l'équipe a besoin ?** Pas forcément, et c'est le cas ici. La régression logistique a la meilleure accuracy, mais l'équipe cherche avant tout à repérer les départs, donc le classement (AP) et le rappel comptent davantage.
+**Is the most accurate model the one the team needs?** Not necessarily, and that is the case here. Logistic regression has the best accuracy, but the team mainly wants to spot churners, so ranking (AP) and recall matter more.
 
-**Si deux candidats sont proches ?** On garde le plus simple. Il est plus rapide, plus facile à expliquer et moins exposé au surapprentissage. C'est exactement le rôle de la tolérance dans la règle.
+**What if two candidates are close?** We keep the simpler one. It is faster, easier to explain and less exposed to overfitting. That is exactly the role of the tolerance in the rule.
 
-**Une probabilité de 0,8 est-elle un vrai risque de 80 % ?** Pas automatiquement. Les probabilités d'une random forest sont des moyennes de votes d'arbres, pas des probabilités calibrées. Pour le vérifier, il faudrait une courbe de calibration.
+**Is a predicted probability of 0.8 a real 80 % risk?** Not automatically. Random forest probabilities are averages of tree votes, not calibrated probabilities. Checking that would require a calibration curve.
 
-## 4. Sauvegarder toute la pipeline entraînée
+## 4. Saving the whole fitted pipeline
 
-Le fichier `pipeline.joblib` contient le prétraitement et le classifieur ajustés, dans un seul objet. À côté, `metadata.json` enregistre le hash des données, la graine et l'affectation des clients, le rôle des variables, la politique de prétraitement, les paramètres du modèle, les métriques, la classe positive, le seuil, le commit Git et les versions des paquets. Il contient aussi le SHA-256 de l'artefact, vérifié avant chaque chargement.
+The `pipeline.joblib` file contains the fitted preprocessing and classifier in a single object. Next to it, `metadata.json` records the data hash, the seed and the customer allocation, the feature roles, the preprocessing policy, the model parameters, the metrics, the positive class, the threshold, the Git commit and the package versions. It also contains the artifact's own SHA-256, which is checked before every load.
 
-Sur mon Mac, `scripts/check_reload.py` recharge l'artefact dans un processus séparé et prédit 25 clients de validation sans colonne `Churn`. L'écart maximal avec les scores calculés juste après l'entraînement est de `1,1e-16` (tolérance `1e-12`), et les 25 prédictions de classe sont identiques. Aucun `fit` n'est appelé dans ce processus.
+On my Mac, `scripts/check_reload.py` reloads the artifact in a separate process and predicts 25 validation customers without a `Churn` column. The maximum difference with the scores computed right after training is `1.1e-16` (tolerance `1e-12`), and the 25 class predictions are identical. No `fit` is called in that process.
 
-**Pourquoi sauvegarder seulement le classifieur ne suffit pas ?** Le classifieur attend des nombres mis à l'échelle et des colonnes one-hot. Sans le prétraitement ajusté, il faudrait le reconstruire à la main, avec le risque d'obtenir d'autres médianes ou un autre ordre de colonnes.
+**Why is saving only the classifier not enough?** The classifier expects scaled numbers and one-hot columns. Without the fitted preprocessing, it would have to be rebuilt by hand, with the risk of getting other medians or another column order.
 
-**Qu'y a-t-il dans un imputer ou un encoder ajusté ?** Les médianes du train, la catégorie la plus fréquente de chaque colonne et la liste des catégories, qui fixe l'ordre des colonnes one-hot.
+**What lives inside a fitted imputer or encoder?** The training medians, the most frequent category of each column and the list of categories, which fixes the order of the one-hot columns.
 
-**Deux fichiers `model.joblib` peuvent-ils contenir des modèles différents ?** Oui, et on en a eu un exemple concret. Mon `pipeline.joblib` (SHA-256 `e42ab3f7…`) n'est pas le même que celui d'Elyas (`289cd06d…`), alors que le code, la config et les données sont identiques. C'est le même raisonnement qu'au TP01 avec le CSV : le nom du fichier ne prouve rien, le hash si.
+**Could two `model.joblib` files contain different models?** Yes, and we had a concrete example. My `pipeline.joblib` (SHA-256 `e42ab3f7…`) is not the same as Elyas's (`289cd06d…`), even though the code, the config and the data are identical. It is the same reasoning as in TP01 with the CSV: the file name proves nothing, the hash does.
 
-**Pipeline sklearn ou pipeline Kubeflow ?** Une `Pipeline` sklearn est un seul objet Python qui enchaîne des transformations et un modèle en mémoire. Une pipeline Kubeflow est un enchaînement d'étapes séparées (un graphe), chacune exécutée dans son propre conteneur, qui se passent des fichiers (par exemple « télécharger, entraîner, évaluer, déployer »).
+**sklearn Pipeline or Kubeflow pipeline?** A sklearn `Pipeline` is a single Python object that chains transformations and a model in memory. A Kubeflow pipeline is a sequence of separate steps (a graph), each run in its own container, passing files to each other (for example "download, train, evaluate, deploy").
 
-## 5. Vérifications de fiabilité
+## 5. Reliability checks
 
-J'ai relancé `scripts/check_pipeline.py` sur mon Mac. Les 11 vérifications passent :
+I ran `scripts/check_pipeline.py` again on my Mac. All 11 checks pass:
 
-- **Découpage** : aucun `customerID` commun entre train, validation et test.
-- **Statistiques apprises sur le train seulement** : les médianes de l'imputer et les moyennes du scaler sont celles du train, pas celles du jeu complet.
-- **`predict` ne modifie rien** : les statistiques apprises sont identiques avant et après une prédiction.
-- **Valeurs manquantes autorisées** : un `TotalCharges` vide, `None` ou `NaN` est remplacé par la médiane du train, et un `Contract` manquant par la catégorie la plus fréquente.
-- **Catégorie inconnue** : `"Three year"` est encodée par des zéros, sans erreur.
-- **Colonne manquante** : l'absence de `Contract` provoque une erreur visible, plutôt qu'une prédiction silencieusement fausse.
-- **Texte invalide** : `"abc"` dans une colonne numérique provoque une erreur, au lieu de devenir une valeur manquante.
+- **Split**: no `customerID` shared between train, validation and test.
+- **Statistics learned on train only**: the imputer medians and the scaler means are those of train, not those of the full dataset.
+- **`predict` changes nothing**: the learned statistics are identical before and after a prediction.
+- **Allowed missing values**: a blank, `None` or `NaN` `TotalCharges` is replaced by the training median, and a missing `Contract` by the most frequent category.
+- **Unknown category**: `"Three year"` is encoded as zeros, without an error.
+- **Missing column**: a missing `Contract` raises a visible error, rather than a silently wrong prediction.
+- **Malformed text**: `"abc"` in a numeric column raises an error, instead of becoming a missing value.
 
-Les 16 tests unitaires passent aussi (`uv run pytest`).
+The 16 unit tests also pass (`uv run pytest`).
 
-## 6. Relecture et problème trouvé
+## 6. Review and issue found
 
-L'énoncé demande d'échanger le projet avec un pair et de noter un problème. J'ai suivi uniquement le README d'Elyas sur une autre plateforme (macOS arm64, contre Linux aarch64 pour lui), avec le même `uv.lock`, la même config et la même graine. Le découpage, la baseline, la régression logistique et l'arbre de décision donnent exactement ses chiffres.
+The handout asks to exchange the project with a peer and record one issue. I followed only Elyas's README on another platform (macOS arm64, against Linux aarch64 for him), with the same `uv.lock`, the same config and the same seed. The split, the baseline, logistic regression and the decision tree give exactly his numbers.
 
-La random forest, elle, ne donne pas tout à fait le même résultat. L'AP passe de 0,6662 à 0,6665, et un client de validation change de prédiction (193 faux négatifs au lieu de 192). Les versions des paquets sont pourtant identiques. La différence vient des calculs en virgule flottante, qui ne sont pas strictement les mêmes d'une plateforme à l'autre, et un modèle composé de 300 arbres y est plus sensible qu'une régression logistique. Le problème n'était pas tant l'écart lui-même, qui ne change pas la sélection, que la façon dont il était présenté. Les réponses d'Elyas indiquaient que relancer `train.py` redonnait les mêmes métriques, et le README ne disait rien de la plateforme. C'est vrai sur une même machine, pas d'une machine à l'autre.
+The random forest, however, does not give quite the same result. AP goes from 0.6662 to 0.6665, and one validation customer is predicted differently (193 false negatives instead of 192). The package versions are nevertheless identical. The difference comes from floating-point computations, which are not strictly the same from one platform to another, and a model made of 300 trees is more sensitive to them than a logistic regression. The problem was not so much the gap itself, which does not change the selection, as the way it was presented. Elyas's answers said that re-running `train.py` gives the same metrics, and the README said nothing about the platform. That is true on the same machine, not from one machine to another.
 
-La résolution a été de le préciser dans le README, dans la partie sur ce qui n'est pas encore reproduit, et d'ajouter mes résultats macOS dans `evidence/tp02/macos/` pour que l'écart soit vérifiable. J'en retiens que figer les versions des paquets ne suffit pas à figer les résultats : la plateforme fait aussi partie de l'environnement.
+The resolution was to state this in the README, in the section about what is not reproduced yet, and to add my macOS results in `evidence/tp02/macos/` so the gap can be checked. What I take from this is that pinning package versions is not enough to pin results: the platform is part of the environment too.
 
-## Ce qui reste à faire
+## What is left
 
-Le jeu de test n'a pas encore été évalué. Il est réservé pour une évaluation unique, une fois la sélection terminée. Le seuil est resté à 0,5 et les probabilités ne sont pas calibrées. La comparaison repose sur un seul découpage de validation, sans validation croisée. Enfin, chaque entraînement est enregistré dans un simple fichier JSON. Le suivi des expériences et le versionnage des modèles arrivent au TP suivant.
+The test set has not been evaluated yet. It is reserved for a single evaluation once selection is finished. The threshold stayed at 0.5 and the probabilities are not calibrated. The comparison relies on a single validation split, without cross-validation. Finally, each training run is recorded in a plain JSON file. Experiment tracking and model versioning come in the next TP.
