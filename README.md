@@ -134,3 +134,75 @@ uv run pytest
 The lock file does not pin the OS, CPU architecture or hardware. A hash does not establish label quality or the absence of leakage. Training runs are recorded in a JSON file, not in an experiment tracker (next TP).
 
 Re-running `train.py` on the same platform gives identical metrics. Across platforms, tree ensembles can differ slightly because of floating-point differences, even with the same `uv.lock`, seed, config and split. On macOS arm64 the random forest reached a validation average precision of 0.6665 instead of 0.6662 on Linux aarch64, with one validation customer predicted differently; the split, the other models and the selection were identical (`evidence/tp02/macos/`). The fitted `pipeline.joblib` therefore has a different SHA-256 on each platform: always check it against the `metadata.json` that ships with it. The test set has not been evaluated yet, and the predicted probabilities are not calibrated.
+
+## TP03 - Experiment tracking and model registry with MLflow
+
+MLflow 3.x (version pinned in `uv.lock`) records every candidate of the TP02 workflow, then registers the selected pipeline.
+Same six features, same customer allocation (checked against `evidence/tp02/split_allocation.csv`), same threshold and
+selection rule (validation average precision); the test split is still unused.
+
+### 1. Start the tracking server (terminal 1, project root, keep it running)
+
+```sh
+uv sync --locked
+uv run mlflow server --host 127.0.0.1 --port 5000 \
+  --backend-store-uri sqlite:///mlflow.db --artifacts-destination ./mlartifacts
+```
+
+UI: <http://127.0.0.1:5000>. On macOS, port 5000 can be taken by the AirPlay Receiver: then use `--port 5001` and
+`export MLFLOW_TRACKING_URI=http://127.0.0.1:5001` in the second terminal (all scripts read it, or pass `--tracking-uri`).
+
+### 2. Tracked training (terminal 2, after committing the code)
+
+```sh
+uv run python scripts/train_tracked.py --config configs/tp03_train.json
+```
+
+One run per candidate (`baseline_most_frequent`, `logistic_regression`, `decision_tree`, `random_forest`) in the
+experiment `telco-churn-tp03`, each with:
+
+| Category | Recorded |
+|---|---|
+| Parameters | `model_type`, actual classifier settings (`clf__*`), `random_state`/`split_seed`, `threshold` |
+| Metrics | `val_average_precision`, `val_precision`, `val_recall`, `val_f1` (+ ROC AUC, accuracy, positive rate, `fit_seconds`) |
+| Tags | `git_commit`, `code_dirty`, `data_sha256`, `split_allocation_sha256`, `selected` |
+| Artifacts | `evaluation/validation_confusion_matrix.{png,csv}` (rows = actual, columns = predicted, order 0/1), `provenance.json`, `split/split_allocation.csv`, `reference/` batch + predictions |
+| Dataset inputs | `telco_train` (context `training`), `telco_validation` (context `validation`) |
+| Model | the fitted preprocessing + classifier pipeline, `mlflow.sklearn.log_model(name="churn_pipeline")` |
+
+The selected pipeline is registered as `telco-churn` and the alias `candidate` is set to the new version.
+Each run of this command creates new runs and a new registered version (the alias moves to it). IDs, URIs and the
+version are written to `reports/tp03/handover.json`.
+
+### 3. Inference from the registry (new terminal process, server still running)
+
+```sh
+uv run python scripts/predict_registry.py
+```
+
+Loads `models:/telco-churn@candidate` (no `fit`, no training import), checks agreement with the predictions recorded in
+the source run, then scores `examples/new_customers.csv` with the TP02 parsing rules. Options: `--model-uri
+models:/telco-churn/<version>`, `--input`, `--output`.
+
+### 4. Summary
+
+```sh
+uv run python scripts/make_tp03_summary.py
+```
+
+Writes `reports/tp03_summary.md` and copies the small evidence files to `evidence/tp03/`.
+Screenshots go to `evidence/tp03/screenshots/` (`01_compare_runs.png`, `02_selected_run.png`, `03_registry_alias.png`).
+
+### Where the tracking data live and how to recover the model
+
+| Component | Content |
+|---|---|
+| `mlflow.db` (SQLite backend store) | experiments, runs, params, metrics, tags, dataset records, registry (versions, aliases) |
+| `mlartifacts/` (artifact store) | model files (`MLmodel`, `model.pkl`, requirements), confusion matrices, provenance, split allocation |
+| tracking server | API + UI; holds no data itself, stopping it deletes nothing |
+
+Both are local to this machine and ignored by Git (do not delete them). To recover the selected model: start the server
+from the project root with the same command, then `mlflow.sklearn.load_model("models:/telco-churn@candidate")` (or the
+pinned version `models:/telco-churn/<version>`). A run ID or `models:/` URI is not enough on another machine: a colleague
+needs the same server (or a copy of both `mlflow.db` and `mlartifacts/`), this repository at the recorded commit with
+`uv.lock`, and the original CSV (checked against its SHA-256). Sharing a team server is not set up yet.

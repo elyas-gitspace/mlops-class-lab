@@ -37,3 +37,8 @@ mlartifacts/
 
 # Submitted TP02 artifacts (trusted, hash recorded in the metadata.json next to them)
 !evidence/tp02/macos/pipeline.joblib
+
+# TP03 - local MLflow tracking storage (kept on disk, not committed)
+mlflow.db
+mlflow.db-*
+!reports/tp03_summary.md
