@@ -1,0 +1,5 @@
+run_id,candidate,estimator,val_average_precision,val_precision,val_recall,val_f1,fit_seconds,decision
+58d4ebaf314047b8a6506055df4cfb68,baseline_most_frequent,DummyClassifier,0.2654,0.0,0.0,0.0,0.0074,baseline (never selected)
+2798cfd56b5c4af6a7abd57aa28abbed,logistic_regression,LogisticRegression,0.6475,0.6644,0.5294,0.5893,0.0472,rejected
+76e2e18421c44693ac401f2189a6327f,decision_tree,DecisionTreeClassifier,0.6173,0.6356,0.6016,0.6181,0.0101,rejected
+5b143e97c90b4a86b7fb23824ef00fe0,random_forest,RandomForestClassifier,0.6665,0.6464,0.484,0.5535,0.3884,selected

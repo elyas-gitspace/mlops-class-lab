@@ -1,0 +1,17 @@
+{
+  "model_uri": "models:/telco-churn@candidate",
+  "registered_model": "telco-churn",
+  "registered_version": "1",
+  "alias": "candidate",
+  "source_run_id": "5b143e97c90b4a86b7fb23824ef00fe0",
+  "logged_model_source": "models:/m-b71601c46a744854ad1b08fd20e434cb",
+  "threshold": 0.5,
+  "records_compared": 25,
+  "same_customer_ids": true,
+  "class_predictions_agree": true,
+  "max_abs_score_difference": 1.1102230246251565e-16,
+  "score_tolerance": 1e-09,
+  "scores_within_tolerance": true,
+  "fit_called": false,
+  "checked_at": "2026-11-18T08:33:25+00:00"
+}

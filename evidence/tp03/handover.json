@@ -1,0 +1,18 @@
+{
+  "tracking_uri": "http://127.0.0.1:5000",
+  "experiment": "telco-churn-tp03",
+  "experiment_id": "1",
+  "selected_candidate": "random_forest",
+  "source_run_id": "5b143e97c90b4a86b7fb23824ef00fe0",
+  "logged_model_uri": "models:/m-b71601c46a744854ad1b08fd20e434cb",
+  "git_commit": "1be5631c1aa3dc54a5caa9630e997884f0c83091",
+  "code_dirty": false,
+  "data_sha256": "16320c9c1ec72448db59aa0a26a0b95401046bef5d02fd3aeb906448e3055e91",
+  "split_allocation_sha256": "a981175e5fa0ef378bc7cea8b18f5db669157ad01a9f532239e30514bc791f16",
+  "threshold": 0.5,
+  "registered_model": "telco-churn",
+  "registered_version": "1",
+  "alias": "candidate",
+  "alias_uri": "models:/telco-churn@candidate",
+  "version_uri": "models:/telco-churn/1"
+}
